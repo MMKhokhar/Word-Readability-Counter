@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word & Readability Counter</title>
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --border: #e2e8f0;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #60a5fa;
+            --accent-hover: #3b82f6;
+            --border: #334155;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header-text p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 24px;
+            padding: 8px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] .theme-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .textarea-container {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 16px;
+            resize: vertical;
+            box-shadow: var(--card-shadow);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .char-count {
+            position: absolute;
+            bottom: 12px;
+            right: 16px;
+            background-color: var(--bg-secondary);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--accent);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            flex: 1;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button.secondary {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        button.secondary:hover {
+            background-color: var(--border);
+        }
+
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background-color: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .card h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 480px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .metric {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .metric-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .share-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .share-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .share-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .twitter { background-color: #1da1f2; }
+        .twitter:hover { background-color: #1a8cd8; }
+
+        .facebook { background-color: #1877f2; }
+        .facebook:hover { background-color: #166fe0; }
+
+        .linkedin { background-color: #0a66c2; }
+        .linkedin:hover { background-color: #095ab0; }
+
+        .whatsapp { background-color: #25d366; }
+        .whatsapp:hover { background-color: #20bd5c; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-secondary);
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-text">
+                <h1>Word & Readability Counter</h1>
+                <p>Analyze your text for word count, readability, and more</p>
+            </div>
+            <button class="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+        </header>
+
+        <main>
+            <div class="grid">
+                <div class="input-section">
+                    <div class="textarea-container">
+                        <textarea id="text-input" placeholder="Paste or type your text here..." aria-label="Text input"></textarea>
+                        <div id="char-count" class="char-count">0 characters</div>
+                    </div>
+                    <div class="button-group">
+                        <button id="analyze-btn">Analyze</button>
+                        <button id="reset-btn" class="secondary">Reset</button>
+                    </div>
+                </div>
+
+                <div class="results-section">
+                    <div class="card">
+                        <h3>Text Details</h3>
+                        <div id="details-container" class="metrics-grid">
+                            <div class="metric">
+                                <span id="words" class="metric-value">—</span>
+                                <span class="metric-label">Words</span>
+                            </div>
+                            <div class="metric">
+                                <span id="characters" class="metric-value">—</span>
+                                <span class="metric-label">Characters</span>
+                            </div>
+                            <div class="metric">
+                                <span id="sentences" class="metric-value">—</span>
+                                <span class="metric-label">Sentences</span>
+                            </div>
+                            <div class="metric">
+                                <span id="paragraphs" class="metric-value">—</span>
+                                <span class="metric-label">Paragraphs</span>
+                            </div>
+                            <div class="metric">
+                                <span id="grade-level" class="metric-value">—</span>
+                                <span class="metric-label">Grade Level</span>
+                            </div>
+                            <div class="metric">
+                                <span id="reading-time" class="metric-value">—</span>
+                                <span class="metric-label">Reading Time (sec)</span>
+                            </div>
+                            <div class="metric">
+                                <span id="speaking-time" class="metric-value">—</span>
+                                <span class="metric-label">Speaking Time (sec)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Keyword Density</h3>
+                        <div id="keyword-table-container">
+                            <table aria-describedby="keyword-density-table">
+                                <thead>
+                                    <tr>
+                                        <th>Keyword</th>
+                                        <th>Count</th>
+                                        <th>Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="keyword-table-body">
+                                    <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Share Results</h3>
+                        <div class="share-buttons">
+                            <button id="copy-link" class="share-button">Copy Link</button>
+                            <button id="copy-results" class="share-button">Copy Results</button>
+                            <button id="share-twitter" class="share-button twitter">Twitter</button>
+                            <button id="share-facebook" class="share-button facebook">Facebook</button>
+                            <button id="share-linkedin" class="share-button linkedin">LinkedIn</button>
+                            <button id="share-whatsapp" class="share-button whatsapp">WhatsApp</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // DOM Elements
+        const textInput = document.getElementById('text-input');
+        const charCount = document.getElementById('char-count');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const themeToggle = document.querySelector('.theme-toggle');
+        
+        // Result elements
+        const wordsEl = document.getElementById('words');
+        const charactersEl = document.getElementById('characters');
+        const sentencesEl = document.getElementById('sentences');
+        const paragraphsEl = document.getElementById('paragraphs');
+        const gradeLevelEl = document.getElementById('grade-level');
+        const readingTimeEl = document.getElementById('reading-time');
+        const speakingTimeEl = document.getElementById('speaking-time');
+        const keywordTableBody = document.getElementById('keyword-table-body');
+        
+        // Share buttons
+        const copyLinkBtn = document.getElementById('copy-link');
+        const copyResultsBtn = document.getElementById('copy-results');
+        const shareTwitterBtn = document.getElementById('share-twitter');
+        const shareFacebookBtn = document.getElementById('share-facebook');
+        const shareLinkedinBtn = document.getElementById('share-linkedin');
+        const shareWhatsappBtn = document.getElementById('share-whatsapp');
+        
+        // Constants
+        const KEYWORDS = ['words', 'word', 'text', 'help', 'writing', 'count', 'make', 'keywords', 'characters', 'online'];
+        const READING_SPEED = 200; // words per minute
+        const SPEAKING_SPEED = 130; // words per minute
+        
+        // State
+        let debounceTimer;
+        
+        // Initialize the app
+        function init() {
+            // Check for saved theme preference
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+            }
+            
+            // Check for URL hash with text
+            if (window.location.hash) {
+                const hash = window.location.hash.substring(1);
+                if (hash.startsWith('t=')) {
+                    const encodedText = hash.substring(2);
+                    try {
+                        textInput.value = decodeURIComponent(encodedText);
+                        updateCharCount();
+                        analyzeText();
+                    } catch (e) {
+                        console.error('Error decoding text from URL', e);
+                    }
+                }
+            }
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+        
+        // Set up all event listeners
+        function setupEventListeners() {
+            textInput.addEventListener('input', () => {
+                updateCharCount();
+                debounce(analyzeText, 250);
+            });
+            
+            textInput.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    analyzeText();
+                }
+            });
+            
+            analyzeBtn.addEventListener('click', analyzeText);
+            resetBtn.addEventListener('click', resetApp);
+            
+            themeToggle.addEventListener('click', toggleTheme);
+            
+            // Share buttons
+            copyLinkBtn.addEventListener('click', copyLink);
+            copyResultsBtn.addEventListener('click', copyResults);
+            shareTwitterBtn.addEventListener('click', shareToTwitter);
+            shareFacebookBtn.addEventListener('click', shareToFacebook);
+            shareLinkedinBtn.addEventListener('click', shareToLinkedIn);
+            shareWhatsappBtn.addEventListener('click', shareToWhatsApp);
+        }
+        
+        // Update character count
+        function updateCharCount() {
+            const count = textInput.value.length;
+            charCount.textContent = `${count} character${count !== 1 ? 's' : ''}`;
+        }
+        
+        // Debounce function for live analysis
+        function debounce(func, delay) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(func, delay);
+        }
+        
+        // Main text analysis function
+        function analyzeText() {
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                resetResults();
+                return;
+            }
+            
+            // Calculate metrics
+            const words = countWords(text);
+            const characters = countCharacters(text);
+            const sentences = countSentences(text);
+            const paragraphs = countParagraphs(text);
+            const gradeLevel = calculateGradeLevel(text, words, sentences);
+            const readingTime = calculateTime(words, READING_SPEED);
+            const speakingTime = calculateTime(words, SPEAKING_SPEED);
+            const keywordDensity = calculateKeywordDensity(text, words);
+            
+            // Update UI
+            updateResults({
+                words,
+                characters,
+                sentences,
+                paragraphs,
+                gradeLevel,
+                readingTime,
+                speakingTime,
+                keywordDensity
+            });
+        }
+        
+        // Reset the app
+        function resetApp() {
+            textInput.value = '';
+            resetResults();
+            updateCharCount();
+            window.history.replaceState(null, null, ' '); // Clear URL hash
+        }
+        
+        // Reset all result displays
+        function resetResults() {
+            wordsEl.textContent = '—';
+            charactersEl.textContent = '—';
+            sentencesEl.textContent = '—';
+            paragraphsEl.textContent = '—';
+            gradeLevelEl.textContent = '—';
+            readingTimeEl.textContent = '—';
+            speakingTimeEl.textContent = '—';
+            
+            // Clear keyword table
+            keywordTableBody.innerHTML = '';
+        }
+        
+        // Update results in the UI
+        function updateResults(metrics) {
+            wordsEl.textContent = metrics.words.toLocaleString();
+            charactersEl.textContent = metrics.characters.toLocaleString();
+            sentencesEl.textContent = metrics.sentences.toLocaleString();
+            paragraphsEl.textContent = metrics.paragraphs.toLocaleString();
+            gradeLevelEl.textContent = metrics.gradeLevel === null ? '—' : metrics.gradeLevel.toFixed(1);
+            readingTimeEl.textContent = metrics.readingTime.toLocaleString();
+            speakingTimeEl.textContent = metrics.speakingTime.toLocaleString();
+            
+            // Update keyword table
+            updateKeywordTable(metrics.keywordDensity, metrics.words);
+        }
+        
+        // Update keyword density table
+        function updateKeywordTable(keywordDensity, totalWords) {
+            keywordTableBody.innerHTML = '';
+            
+            KEYWORDS.forEach(keyword => {
+                const count = keywordDensity[keyword] || 0;
+                const percentage = totalWords > 0 ? (count / totalWords) * 100 : 0;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${keyword}</td>
+                    <td>${count}</td>
+                    <td>${percentage.toFixed(1)}%</td>
+                `;
+                
+                keywordTableBody.appendChild(row);
+            });
+        }
+        
+        // Text analysis functions
+        function countWords(text) {
+            if (!text) return 0;
+            
+            // Match words with letters, numbers, apostrophes, and hyphens
+            const wordRegex = /[A-Za-z0-9'’-]+/g;
+            const matches = text.match(wordRegex);
+            
+            return matches ? matches.length : 0;
+        }
+        
+        function countCharacters(text) {
+            return text.length;
+        }
+        
+        function countSentences(text) {
+            if (!text) return 0;
+            
+            // Split on . ! ? followed by space or end of string
+            // Ignore common abbreviations (words ≤ 3 letters ending with period)
+            const sentenceRegex = /[^.!?]+[.!?]+(\s|$)/g;
+            const matches = text.match(sentenceRegex);
+            
+            return matches ? matches.length : 1; // At least 1 sentence if there's text
+        }
+        
+        function countParagraphs(text) {
+            if (!text) return 0;
+            
+            // Split by two or more consecutive line breaks
+            const paragraphs = text.split(/\n\s*\n/);
+            
+            // Filter out empty paragraphs
+            return paragraphs.filter(p => p.trim().length > 0).length;
+        }
+        
+        function calculateGradeLevel(text, words, sentences) {
+            if (words === 0 || sentences === 0) return null;
+            
+            const syllables = estimateSyllablesInText(text);
+            const grade = 0.39 * (words / sentences) + 11.8 * (syllables / words) - 15.59;
+            
+            return Math.max(grade, 0); // Ensure non-negative grade level
+        }
+        
+        function estimateSyllablesInText(text) {
+            const words = text.match(/[A-Za-z'’-]+/g) || [];
+            let totalSyllables = 0;
+            
+            words.forEach(word => {
+                totalSyllables += estimateSyllablesInWord(word);
+            });
+            
+            return totalSyllables;
+        }
+        
+        function estimateSyllablesInWord(word) {
+            if (!word) return 0;
+            
+            word = word.toLowerCase();
+            
+            // Count vowel groups
+            const vowelGroups = word.match(/[aeiouy]+/g);
+            if (!vowelGroups) return 1; // At least 1 syllable
+            
+            let count = vowelGroups.length;
+            
+            // Subtract silent 'e' at the end (but not after consonant + 'le')
+            if (word.endsWith('e') && !word.endsWith('le') && count > 1) {
+                count--;
+            }
+            
+            return Math.max(count, 1); // Ensure at least 1 syllable
+        }
+        
+        function calculateTime(words, speed) {
+            return Math.ceil(words / (speed / 60));
+        }
+        
+        function calculateKeywordDensity(text, totalWords) {
+            const density = {};
+            const words = text.toLowerCase().match(/[A-Za-z0-9'’-]+/g) || [];
+            
+            KEYWORDS.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+                const matches = text.match(regex);
+                density[keyword] = matches ? matches.length : 0;
+            });
+            
+            return density;
+        }
+        
+        // Theme toggle
+        function toggleTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // Share functions
+        function copyLink() {
+            const text = textInput.value;
+            if (!text) return;
+            
+            const encodedText = encodeURIComponent(text);
+            const url = `${window.location.origin}${window.location.pathname}#t=${encodedText}`;
+            
+            navigator.clipboard.writeText(url)
+                .then(() => {
+                    alert('Link copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Failed to copy link: ', err);
+                });
+        }
+        
+        function copyResults() {
+            const text = textInput.value;
+            if (!text) return;
+            
+            const words = countWords(text);
+            const characters = countCharacters(text);
+            const sentences = countSentences(text);
+            const paragraphs = countParagraphs(text);
+            const gradeLevel = calculateGradeLevel(text, words, sentences);
+            const readingTime = calculateTime(words, READING_SPEED);
+            const speakingTime = calculateTime(words, SPEAKING_SPEED);
+            const keywordDensity = calculateKeywordDensity(text, words);
+            
+            let results = `Word & Readability Analysis Results:\n\n`;
+            results += `Words: ${words.toLocaleString()}\n`;
+            results += `Characters: ${characters.toLocaleString()}\n`;
+            results += `Sentences: ${sentences.toLocaleString()}\n`;
+            results += `Paragraphs: ${paragraphs.toLocaleString()}\n`;
+            results += `Grade Level: ${gradeLevel === null ? 'N/A' : gradeLevel.toFixed(1)}\n`;
+            results += `Reading Time: ${readingTime.toLocaleString()} seconds\n`;
+            results += `Speaking Time: ${speakingTime.toLocaleString()} seconds\n\n`;
+            
+            results += `Keyword Density:\n`;
+            KEYWORDS.forEach(keyword => {
+                const count = keywordDensity[keyword] || 0;
+                const percentage = words > 0 ? (count / words) * 100 : 0;
+                results += `${keyword}: ${count} (${percentage.toFixed(1)}%)\n`;
+            });
+            
+            navigator.clipboard.writeText(results)
+                .then(() => {
+                    alert('Results copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Failed to copy results: ', err);
+                });
+        }
+        
+        function shareToTwitter() {
+            const text = textInput.value;
+            if (!text) return;
+            
+            const url = encodeURIComponent(window.location.href);
+            const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent('Check out this text analysis:')}&url=${url}`;
+            window.open(shareUrl, '_blank');
+        }
+        
+        function shareToFacebook() {
+            const url = encodeURIComponent(window.location.href);
+            const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+            window.open(shareUrl, '_blank');
+        }
+        
+        function shareToLinkedIn() {
+            const url = encodeURIComponent(window.location.href);
+            const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
+            window.open(shareUrl, '_blank');
+        }
+        
+        function shareToWhatsApp() {
+            const text = encodeURIComponent('Check out this text analysis:');
+            const url = encodeURIComponent(window.location.href);
+            const shareUrl = `https://wa.me/?text=${text}%20${url}`;
+            window.open(shareUrl, '_blank');
+        }
+        
+        // Initialize the app when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
